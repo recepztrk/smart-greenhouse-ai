@@ -69,5 +69,13 @@ DecisionExplanation
 
 ```bash
 python scripts/run_test_scenarios.py 
+```
 
+---
 
+## Dashboard'u Çalıştırma
+
+Streamlit tabanlı görsel dashboard'u çalıştırmak için:
+
+```bash
+streamlit run dashboard.py
