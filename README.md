@@ -75,6 +75,8 @@ python scripts/run_test_scenarios.py
 
 ## Dashboard'u Çalıştırma
 
+Dashboard üzerinde hazır test senaryoları da seçilebilir. Bu senaryolar sayesinde sistemin normal koşullar, kuru toprak, düşük su tankı, yüksek sıcaklık ve kritik bitki stresi gibi durumlarda nasıl karar verdiği hızlıca gözlemlenebilir.
+
 Streamlit tabanlı görsel dashboard'u çalıştırmak için:
 
 ```bash

@@ -29,6 +29,7 @@ from src.explanation.explanation_engine import DecisionExplanation, ExplanationE
 from src.simulation.greenhouse_state import GreenhouseState
 from src.simulation.greenhouse_simulator import GreenhouseSimulator
 from src.simulation.virtual_sensors import SensorReadings, VirtualSensorReader
+from src.simulation.scenario_profiles import get_scenario_by_name, get_scenario_profiles
 
 
 # -----------------------------------------------------------------------------
@@ -399,6 +400,31 @@ def main() -> None:
         value=True,
         help="Aktif olduğunda sanal sensör değerlerine küçük rastgele sapmalar eklenir.",
     )
+
+    st.sidebar.header("Hazır Senaryolar")
+
+    scenario_profiles = get_scenario_profiles()
+    scenario_names = [scenario.name for scenario in scenario_profiles]
+
+    selected_scenario_name = st.sidebar.selectbox(
+        "Senaryo Seç",
+        options=scenario_names,
+        help="Hazır senaryolar, fuzzy karar motorunun davranışını hızlı test etmek için kullanılır.",
+    )
+
+    selected_scenario = get_scenario_by_name(selected_scenario_name)
+
+    st.sidebar.caption(selected_scenario.description)
+
+    with st.sidebar.expander("Beklenen Davranış"):
+        st.write(selected_scenario.expected_behavior)
+
+    if st.sidebar.button("Seçili Senaryoyu Yükle", use_container_width=True):
+        initialize_session_state(
+            initial_state=selected_scenario.state,
+            noise_enabled=noise_enabled,
+        )
+        st.rerun()
 
     initial_state = create_initial_state_from_sidebar()
 
