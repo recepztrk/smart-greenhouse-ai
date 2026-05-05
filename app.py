@@ -32,7 +32,7 @@ from src.explanation.explanation_engine import DecisionExplanation, ExplanationE
 from src.simulation.greenhouse_state import GreenhouseState
 from src.simulation.greenhouse_simulator import GreenhouseSimulator
 from src.simulation.virtual_sensors import SensorReadings, VirtualSensorReader
-
+from src.utils.logger import SimulationLogger
 
 def format_state(state: GreenhouseState) -> str:
     """
@@ -140,6 +140,10 @@ def run_demo(steps: int, delay: float, noise_enabled: bool) -> None:
     fuzzy_engine = FuzzyEngine()
     explanation_engine = ExplanationEngine()
 
+    # Her demo çalışmasında temiz bir log dosyası oluşturuyoruz.
+    logger = SimulationLogger()
+    logger.clear_logs()
+
     print("=" * 80)
     print("AKILLI SERA YÖNETİM VE KARAR DESTEK SİSTEMİ - TERMİNAL DEMO")
     print("=" * 80)
@@ -153,6 +157,9 @@ def run_demo(steps: int, delay: float, noise_enabled: bool) -> None:
 
         # 1. Mevcut simülasyon durumunu alıyoruz.
         current_state = simulator.get_state()
+        # Mevcut sera durumunun kopyasını alıyoruz.
+        # Çünkü birazdan aksiyonlar uygulanınca simulator içindeki state değişecek.
+        state_before_snapshot = GreenhouseState(**current_state.to_dict())
         print("Mevcut Sera Durumu:")
         print(f"  {format_state(current_state)}")
 
@@ -188,6 +195,20 @@ def run_demo(steps: int, delay: float, noise_enabled: bool) -> None:
         # 7. Doğal çevresel değişimi uygulayarak simülasyonu bir adım ilerletiyoruz.
         simulator.step()
 
+        # Aksiyon ve doğal değişim sonrası oluşan yeni durumu kaydediyoruz.
+        state_after_snapshot = GreenhouseState(**simulator.get_state().to_dict())
+
+        # 8. Bu adımda oluşan tüm önemli verileri CSV log dosyasına yazıyoruz.
+        logger.log_step(
+            step=step_index,
+            state_before=state_before_snapshot,
+            readings=readings,
+            actions=actions,
+            explanation=explanation,
+            rule_activations=rule_activations,
+            state_after=state_after_snapshot,
+        )
+
         print("Adım Sonrası Sera Durumu:")
         print(f"  {format_state(simulator.get_state())}")
 
@@ -197,6 +218,7 @@ def run_demo(steps: int, delay: float, noise_enabled: bool) -> None:
 
     print("\n" + "=" * 80)
     print("Demo tamamlandı.")
+    print("Log dosyası oluşturuldu: data/simulation_logs.csv")
     print("=" * 80)
 
 
