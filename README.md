@@ -59,3 +59,10 @@ ControlActions
 ExplanationEngine
     ↓
 DecisionExplanation
+
+## Test Senaryolarını Çalıştırma
+
+Önceden tanımlanmış fuzzy karar motoru test senaryolarını çalıştırmak için:
+
+```bash
+python scripts/run_test_scenarios.py
