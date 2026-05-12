@@ -1,0 +1,915 @@
+diff --git a/README.md b/README.md
+index 0a08a30..9a69093 100644
+--- a/README.md
++++ b/README.md
+@@ -34,8 +34,11 @@ Bu değişkenlere göre aşağıdaki kontrol kararları üretilir:
+ - Bulanık mantık tabanlı karar motoru
+ - Uzman sistem mantığıyla kural tabanlı karar üretimi
+ - Karar açıklama modülü
++- Sayısal kabul kriterleri olan test senaryoları
+ - Terminal üzerinden çalışan uçtan uca demo
+-- Gelecekte dashboard ve fiziksel sistem entegrasyonuna uygun modüler yapı
++- Streamlit tabanlı dashboard
++- Dashboard üzerinde hazır senaryo seçimi
++- Gelecekte fiziksel sistem entegrasyonuna uygun modüler yapı
+ 
+ ---
+ 
+@@ -63,21 +66,64 @@ DecisionExplanation
+ 
+ ---
+ 
++## Kurulum
++
++Projeyi yerel ortamda çalıştırmak için:
++
++```bash
++python -m venv venv
++source venv/bin/activate
++pip install -r requirements.txt
++```
++
++Windows PowerShell için sanal ortam etkinleştirme komutu:
++
++```powershell
++.\venv\Scripts\Activate.ps1
++```
++
++---
++
++## Terminal Demosunu Çalıştırma
++
++Varsayılan demo:
++
++```bash
++python app.py
++```
++
++Belirli adım sayısıyla çalıştırmak için:
++
++```bash
++python app.py --steps 5
++```
++
++Sensör gürültüsünü kapatarak çalıştırmak için:
++
++```bash
++python app.py --steps 5 --no-noise
++```
++
++---
++
+ ## Test Senaryolarını Çalıştırma
+ 
+ Önceden tanımlanmış fuzzy karar motoru test senaryolarını çalıştırmak için:
+ 
+ ```bash
+-python scripts/run_test_scenarios.py 
++python scripts/run_test_scenarios.py
+ ```
+ 
++Bu script, her senaryoda üretilen sulama, havalandırma, gölgeleme ve alarm değerlerini beklenen sayısal kriterlere göre kontrol eder. Tüm senaryolar başarıyla geçerse terminalde test özeti görüntülenir.
++
+ ---
+ 
+ ## Dashboard'u Çalıştırma
+ 
+-Dashboard üzerinde hazır test senaryoları da seçilebilir. Bu senaryolar sayesinde sistemin normal koşullar, kuru toprak, düşük su tankı, yüksek sıcaklık ve kritik bitki stresi gibi durumlarda nasıl karar verdiği hızlıca gözlemlenebilir.
+-
+ Streamlit tabanlı görsel dashboard'u çalıştırmak için:
+ 
+ ```bash
+ streamlit run dashboard.py
++```
++
++Dashboard üzerinde hazır test senaryoları seçilebilir. Bu senaryolar sayesinde sistemin normal koşullar, kuru toprak, düşük su tankı, yüksek sıcaklık ve kritik bitki stresi gibi durumlarda nasıl karar verdiği hızlıca gözlemlenebilir.
+diff --git a/docs/technical_design.md b/docs/technical_design.md
+index 8a3aa93..9ebbdcf 100644
+--- a/docs/technical_design.md
++++ b/docs/technical_design.md
+@@ -70,11 +70,13 @@ smart-greenhouse-ai/
+ │   ├── simulation/
+ │   │   ├── greenhouse_state.py
+ │   │   ├── greenhouse_simulator.py
++│   │   ├── scenario_profiles.py
+ │   │   └── virtual_sensors.py
+ │   │
+ │   ├── decision/
+ │   │   ├── actions.py
+-│   │   └── fuzzy_engine.py
++│   │   ├── fuzzy_engine.py
++│   │   └── rule_base.py
+ │   │
+ │   ├── explanation/
+ │   │   └── explanation_engine.py
+@@ -431,6 +433,7 @@ Dashboard, sistemin görsel arayüzünü sağlar.
+ Dashboard üzerinden kullanıcı:
+ 
+ - Başlangıç sera değerlerini ayarlayabilir.
++- Hazır sera senaryolarını seçebilir.
+ - Simülasyonu tek adım çalıştırabilir.
+ - Simülasyonu çoklu adım çalıştırabilir.
+ - Anlık sera durumunu görebilir.
+@@ -520,13 +523,20 @@ Test scriptini çalıştırmak için:
+ python scripts/run_test_scenarios.py
+ ```
+ 
+-Import hatası alınırsa:
++Test scripti, her senaryo için üretilen aksiyonları sayısal kabul kriterlerine göre otomatik doğrular.
+ 
+-```bash
+-PYTHONPATH=. python scripts/run_test_scenarios.py
+-```
++Örnek kabul kriterleri:
++
++- Kuru toprak ve yeterli su tankında sulama seviyesi yüksek olmalıdır.
++- Su tankı kritik düşükken alarm seviyesi yüksek olmalıdır.
++- Yüksek sıcaklıkta fan seviyesi yüksek olmalıdır.
++- Düşük ışıkta gölgeleme kapalı kalmalıdır.
++
++Başarılı çalıştırmada terminal çıktısının sonunda aşağıdaki özet beklenir:
+ 
+-Bu yapı, sistemin beklenen davranışlara göre manuel olarak değerlendirilmesini sağlar.
++```text
++Test özeti: 10/10 senaryo geçti, 0 senaryo kaldı.
++```
+ 
+ ---
+ 
+@@ -561,7 +571,6 @@ Mevcut sınırlılıklar:
+ - Simülasyon modeli gerçek sera fiziğini birebir temsil etmez.
+ - Bitki türüne özel optimum değerler henüz tanımlanmamıştır.
+ - Fuzzy kurallar ilk prototip seviyesindedir.
+-- Otomatik doğrulama testleri henüz eklenmemiştir.
+ - Planning/search modülü henüz uygulanmamıştır.
+ 
+ Bu sınırlılıklar projenin zayıflığı değil, dönem kapsamının kontrollü tutulması için yapılan bilinçli tercihlerdir.
+@@ -579,6 +588,8 @@ Projenin mevcut güçlü yönleri:
+ - Terminal ve dashboard üzerinden çalışabilir prototip
+ - Gelecekte gerçek donanıma genişletilebilir yapı
+ - Türkçe dokümantasyon
++- Sayısal kabul kriterleriyle otomatik test senaryoları
++- Dashboard üzerinde hazır senaryo seçimi
+ - Test senaryoları ile davranış kontrolü
+ 
+ Bu yönleriyle proje yalnızca basit bir otomasyon demosu değil, karar destek sistemi mantığını gösteren akademik bir prototiptir.
+@@ -591,10 +602,8 @@ Bu yönleriyle proje yalnızca basit bir otomasyon demosu değil, karar destek s
+ 
+ ### Kısa Vadeli Geliştirmeler
+ 
+-- Dashboard üzerinde hazır senaryo seçimi
+ - Simülasyon loglarının dashboard’da CSV olarak indirilmesi
+ - Fuzzy üyelik derecelerinin grafiksel gösterimi
+-- Daha detaylı test çıktıları
+ - Kural tabanının iyileştirilmesi
+ - Basit bir planning/search modülü
+ 
+diff --git a/docs/test_scenarios.md b/docs/test_scenarios.md
+index 7286491..55d76fb 100644
+--- a/docs/test_scenarios.md
++++ b/docs/test_scenarios.md
+@@ -1,10 +1,12 @@
+ # Test Senaryoları
+ 
+-Bu dosya, Akıllı Sera Yönetim ve Karar Destek Sistemi için temel test senaryolarını içerir.
++Bu doküman, **Akıllı Sera Yönetim ve Karar Destek Sistemi** için hazırlanan temel test senaryolarını açıklar.
+ 
+-Amaç, fuzzy karar motorunun farklı sera koşullarında beklenen davranışı üretip üretmediğini kontrol etmektir.
++Amaç, fuzzy karar motorunun farklı sera koşullarında beklenen davranışı üretip üretmediğini kontrol etmektir. Testler yalnızca gözlem amaçlı değildir; `scripts/run_test_scenarios.py` dosyası her senaryo için sayısal kabul kriterleri uygular ve senaryonun geçip geçmediğini terminalde gösterir.
+ 
+-Sistem aşağıdaki giriş değişkenlerini kullanır:
++---
++
++## Kullanılan Giriş Değişkenleri
+ 
+ - Sıcaklık
+ - Hava nemi
+@@ -12,13 +14,32 @@ Sistem aşağıdaki giriş değişkenlerini kullanır:
+ - Işık seviyesi
+ - Su tankı seviyesi
+ 
+-Sistem aşağıdaki kontrol kararlarını üretir:
++## Üretilen Kontrol Çıktıları
+ 
+ - Sulama seviyesi
+-- Havalandırma seviyesi
++- Havalandırma / fan seviyesi
+ - Gölgeleme seviyesi
+ - Alarm seviyesi
+ 
++Tüm kontrol çıktıları 0-100 aralığında değerlendirilir.
++
++---
++
++## Senaryo Özeti ve Kabul Kriterleri
++
++| No | Senaryo | Beklenen Ana Davranış | Sayısal Kabul Kriteri |
++|---:|---|---|---|
++| 1 | Normal sera koşulları | Gereksiz müdahale yapılmamalı | Sulama ≤ 10, fan ≤ 15, gölgeleme ≤ 20, alarm ≤ 10 |
++| 2 | Toprak kuru, su yeterli | Sulama yüksek olmalı | Sulama ≥ 70, alarm ≤ 20 |
++| 3 | Toprak kuru, su tankı düşük | Sulama sınırlanmalı, alarm yükselmeli | Sulama ≤ 40, alarm ≥ 80 |
++| 4 | Sıcaklık yüksek | Fan yüksek çalışmalı | Fan ≥ 60 |
++| 5 | Sıcaklık ve ışık yüksek | Fan ve gölgeleme yüksek olmalı | Fan ≥ 60, gölgeleme ≥ 70 |
++| 6 | Hava nemi ve toprak nemi yüksek | Sulama kapalı, hastalık riski uyarısı | Sulama ≤ 10, alarm ≥ 50 |
++| 7 | Su tankı kritik düşük | Alarm yüksek olmalı | Alarm ≥ 80 |
++| 8 | Kritik bitki stresi | Alarm kritik, fan/gölgeleme yüksek, sulama sınırlı | Alarm ≥ 90, fan ≥ 60, gölgeleme ≥ 70, sulama ≤ 40 |
++| 9 | Işık düşük | Gölgeleme kapalı olmalı | Gölgeleme ≤ 10, alarm ≤ 10 |
++| 10 | Düşük sıcaklık | Fan kapalı olmalı | Fan ≤ 10, alarm ≤ 20 |
++
+ ---
+ 
+ ## Senaryo 1: Normal Sera Koşulları
+@@ -35,14 +56,7 @@ Sistem aşağıdaki kontrol kararlarını üretir:
+ 
+ ### Beklenen Davranış
+ 
+-- Sulama kapalı veya çok düşük seviyede olmalıdır.
+-- Havalandırma kapalı veya düşük seviyede olmalıdır.
+-- Gölgeleme düşük seviyede olmalıdır.
+-- Alarm üretilmemelidir.
+-
+-### Yorum
+-
+-Bu senaryo sera ortamının dengeli olduğu durumu temsil eder. Sistem gereksiz müdahale üretmemelidir.
++Sera ortamı dengeli olduğu için sistem gereksiz müdahale üretmemelidir. Sulama, fan ve alarm düşük/kapalı kalmalı; gölgeleme en fazla düşük seviyede olmalıdır.
+ 
+ ---
+ 
+@@ -60,14 +74,7 @@ Bu senaryo sera ortamının dengeli olduğu durumu temsil eder. Sistem gereksiz
+ 
+ ### Beklenen Davranış
+ 
+-- Sulama yüksek seviyede olmalıdır.
+-- Havalandırma düşük veya orta seviyede olabilir.
+-- Gölgeleme düşük seviyede olabilir.
+-- Alarm üretilmemelidir veya düşük seviyede kalmalıdır.
+-
+-### Yorum
+-
+-Toprak nemi düşük olduğu için sistem sulama kararı üretmelidir. Su tankı yeterli olduğu için sulama kısıtlanmamalıdır.
++Toprak nemi düşük olduğu için sistem belirgin sulama kararı üretmelidir. Su tankı yeterli olduğundan alarm düşük veya kapalı kalmalıdır.
+ 
+ ---
+ 
+@@ -85,13 +92,7 @@ Toprak nemi düşük olduğu için sistem sulama kararı üretmelidir. Su tankı
+ 
+ ### Beklenen Davranış
+ 
+-- Sulama tamamen yüksek olmamalı, sınırlı tutulmalıdır.
+-- Alarm yüksek veya kritik seviyede olmalıdır.
+-- Sistem açıklamasında su tankı seviyesinin düşük olduğu belirtilmelidir.
+-
+-### Yorum
+-
+-Toprak kuru olduğu için sulama ihtiyacı vardır. Ancak su tankı düşük olduğu için sistem sınırsız sulama yapmamalı ve kullanıcıyı uyarmalıdır.
++Toprak kuru olduğu için sulama ihtiyacı vardır. Ancak su tankı düşük olduğu için sulama sınırsız yapılmamalı; sistem alarm üretmelidir.
+ 
+ ---
+ 
+@@ -109,13 +110,6 @@ Toprak kuru olduğu için sulama ihtiyacı vardır. Ancak su tankı düşük old
+ 
+ ### Beklenen Davranış
+ 
+-- Havalandırma yüksek seviyede olmalıdır.
+-- Sulama toprak nemine bağlı olarak düşük veya kapalı olabilir.
+-- Gölgeleme ışık seviyesine bağlı olarak düşük veya orta seviyede olabilir.
+-- Alarm düşük veya orta seviyede olabilir.
+-
+-### Yorum
+-
+ Bu senaryo sıcaklık stresini temsil eder. Sistem fan/havalandırma kararını belirgin şekilde artırmalıdır.
+ 
+ ---
+@@ -134,14 +128,7 @@ Bu senaryo sıcaklık stresini temsil eder. Sistem fan/havalandırma kararını
+ 
+ ### Beklenen Davranış
+ 
+-- Havalandırma yüksek seviyede olmalıdır.
+-- Gölgeleme yüksek seviyede olmalıdır.
+-- Alarm orta seviyede olabilir.
+-- Açıklamada yüksek sıcaklık ve yüksek ışık seviyesi vurgulanmalıdır.
+-
+-### Yorum
+-
+-Bu senaryoda bitki üzerinde ısı ve ışık stresi oluşabilir. Sistem hem fan hem gölgeleme aksiyonu üretmelidir.
++Yüksek sıcaklık ve yüksek ışık birlikte ısı/ışık stresi oluşturur. Sistem hem fan hem gölgeleme aksiyonunu yüksek seviyeye çıkarmalıdır.
+ 
+ ---
+ 
+@@ -159,14 +146,7 @@ Bu senaryoda bitki üzerinde ısı ve ışık stresi oluşabilir. Sistem hem fan
+ 
+ ### Beklenen Davranış
+ 
+-- Sulama kapalı olmalıdır.
+-- Havalandırma orta seviyede olabilir.
+-- Alarm düşük veya orta seviyede olabilir.
+-- Açıklamada yüksek nem nedeniyle hastalık riski belirtilebilir.
+-
+-### Yorum
+-
+-Toprak ve hava nemi birlikte yüksek olduğunda bazı bitkiler için hastalık riski artabilir. Sistem sulamayı kapatmalı ve gerektiğinde uyarı üretmelidir.
++Toprak zaten ıslak olduğu için sulama kapalı kalmalıdır. Hava nemi ve toprak nemi birlikte yüksek olduğundan hastalık riski alarmı üretilebilir.
+ 
+ ---
+ 
+@@ -184,13 +164,7 @@ Toprak ve hava nemi birlikte yüksek olduğunda bazı bitkiler için hastalık r
+ 
+ ### Beklenen Davranış
+ 
+-- Alarm yüksek seviyede olmalıdır.
+-- Sulama gerekiyorsa bile sınırlı tutulmalıdır.
+-- Açıklamada su tankı seviyesinin kritik olduğu belirtilmelidir.
+-
+-### Yorum
+-
+-Bu senaryo sistemin kaynak farkındalığını test eder. Sistem yalnızca bitki ihtiyacına göre değil, mevcut su kaynağına göre de karar vermelidir.
++Bu senaryo sistemin kaynak farkındalığını test eder. Su tankı kritik seviyede olduğu için alarm yüksek olmalıdır.
+ 
+ ---
+ 
+@@ -208,15 +182,7 @@ Bu senaryo sistemin kaynak farkındalığını test eder. Sistem yalnızca bitki
+ 
+ ### Beklenen Davranış
+ 
+-- Alarm kritik seviyede olmalıdır.
+-- Havalandırma yüksek seviyede olmalıdır.
+-- Gölgeleme yüksek seviyede olmalıdır.
+-- Sulama ihtiyacı vardır ancak su tankı düşük olduğu için sulama sınırlanabilir.
+-- Açıklamada sıcaklık, toprak kuruluğu, düşük hava nemi ve düşük su tankı birlikte değerlendirilmelidir.
+-
+-### Yorum
+-
+-Bu senaryo sistemin en zor durumlarından biridir. Birden fazla risk aynı anda vardır. Sistem sadece tek değişkene göre karar vermemeli, bütün koşulları birlikte yorumlamalıdır.
++Birden fazla risk aynı anda vardır: yüksek sıcaklık, düşük hava nemi, kuru toprak, yüksek ışık ve düşük su tankı. Alarm kritik olmalı; fan ve gölgeleme yüksek çalışmalı; sulama ise su tankı nedeniyle sınırlanmalıdır.
+ 
+ ---
+ 
+@@ -234,14 +200,7 @@ Bu senaryo sistemin en zor durumlarından biridir. Birden fazla risk aynı anda
+ 
+ ### Beklenen Davranış
+ 
+-- Gölgeleme kapalı olmalıdır.
+-- Havalandırma kapalı veya düşük seviyede olmalıdır.
+-- Sulama toprak nemine bağlı olarak kapalı veya düşük seviyede olabilir.
+-- Alarm üretilmemelidir.
+-
+-### Yorum
+-
+-Işık düşük olduğu için gölgeleme yapılmamalıdır. Bu senaryo gölgeleme kararının ters durumunu test eder.
++Işık düşük olduğu için gölgeleme yapılmamalıdır. Bu koşul tek başına alarm üretmemelidir.
+ 
+ ---
+ 
+@@ -259,36 +218,20 @@ Işık düşük olduğu için gölgeleme yapılmamalıdır. Bu senaryo gölgelem
+ 
+ ### Beklenen Davranış
+ 
+-- Havalandırma kapalı olmalıdır.
+-- Gölgeleme kapalı veya çok düşük seviyede olmalıdır.
+-- Sulama toprak nemine göre kapalı veya düşük seviyede olabilir.
+-- Alarm üretilmeyebilir.
+-
+-### Yorum
+-
+-Sıcaklık düşükken fan çalıştırmak sera koşullarını daha da kötüleştirebilir. Sistem bu durumda fanı kapalı tutmalıdır.
++Sıcaklık düşükken fan çalıştırmak sera koşullarını daha da kötüleştirebilir. Bu nedenle havalandırma kapalı tutulmalıdır.
+ 
+ ---
+ 
+-## Test Mantığı
+-
+-Bu senaryolar, sistemin aşağıdaki özelliklerini kontrol etmek için kullanılacaktır:
+-
+-- Kuru toprakta sulama kararı üretme
+-- Su azlığında sulamayı sınırlama
+-- Yüksek sıcaklıkta havalandırma üretme
+-- Yüksek ışıkta gölgeleme üretme
+-- Kritik durumlarda alarm üretme
+-- Normal koşullarda gereksiz müdahaleden kaçınma
+-- Karar açıklama modülünün doğru gerekçeleri üretmesi
++## Otomatik Test Komutu
+ 
+----
+-
+-## Manuel Test Komutu
++Test senaryolarını çalıştırmak için:
+ 
+-Belirli senaryolar şu anda doğrudan terminal demosu üzerinden otomatik seçilememektedir.
++```bash
++python scripts/run_test_scenarios.py
++```
+ 
+-Ancak sistem genel davranışı aşağıdaki komutla gözlemlenebilir:
++Başarılı bir çalıştırmada terminal çıktısının sonunda aşağıdaki gibi bir özet görülmelidir:
+ 
+-```bash
+-python app.py --steps 5 --no-noise
+\ No newline at end of file
++```text
++Test özeti: 10/10 senaryo geçti, 0 senaryo kaldı.
++```
+diff --git a/scripts/run_test_scenarios.py b/scripts/run_test_scenarios.py
+index af220d5..18fa324 100644
+--- a/scripts/run_test_scenarios.py
++++ b/scripts/run_test_scenarios.py
+@@ -2,12 +2,13 @@
+ run_test_scenarios.py
+ 
+ Bu dosya, Akıllı Sera Yönetim ve Karar Destek Sistemi için önceden tanımlanmış
+-test senaryolarını çalıştırır.
++test senaryolarını çalıştırır ve üretilen kararları beklenen davranışlara göre doğrular.
+ 
+ Amaç:
+     - Fuzzy karar motorunun farklı sera koşullarında nasıl davrandığını görmek
+-    - Karar açıklama modülünün doğru gerekçeler üretip üretmediğini kontrol etmek
+-    - Proje raporunda kullanılabilecek örnek test çıktıları elde etmek
++    - Üretilen aksiyonları sayısal kabul kriterleriyle kontrol etmek
++    - Karar açıklama modülünün ürettiği gerekçeleri terminal çıktısında göstermek
++    - Proje raporunda kullanılabilecek test sonuçları elde etmek
+ 
+ Bu script doğrudan simülasyon döngüsü çalıştırmaz.
+ Bunun yerine belirli sensör değerlerini elle vererek karar motorunu test eder.
+@@ -18,8 +19,17 @@ Bunun yerine belirli sensör değerlerini elle vererek karar motorunu test eder.
+ 
+ from __future__ import annotations
+ 
++import sys
+ from dataclasses import dataclass
+-from typing import List
++from pathlib import Path
++from typing import List, Optional
++
++# Script doğrudan `python scripts/run_test_scenarios.py` komutuyla çalıştırıldığında
++# Python, proje kökünü otomatik olarak import path içine almayabilir.
++# Bu blok, `src` paketinin her ortamda bulunmasını garanti eder.
++PROJECT_ROOT = Path(__file__).resolve().parents[1]
++if str(PROJECT_ROOT) not in sys.path:
++    sys.path.insert(0, str(PROJECT_ROOT))
+ 
+ from src.decision.actions import ControlActions
+ from src.decision.fuzzy_engine import FuzzyEngine, RuleActivation
+@@ -28,23 +38,89 @@ from src.simulation.virtual_sensors import SensorReadings
+ 
+ 
+ @dataclass
+-class TestScenario:
++class ExpectedCheck:
+     """
+-    Tek bir test senaryosunu temsil eden veri sınıfı.
++    Bir senaryo için sayısal doğrulama kriterini temsil eder.
++
++    metric:
++        ControlActions içindeki kontrol çıktısı adı.
++        Örnek: irrigation_level, ventilation_level, shading_level, alarm_level
++
++    min_value / max_value:
++        İlgili aksiyonun kabul edilebilir alt ve üst sınırları.
++        Yalnızca gerekli olan sınır doldurulabilir.
++    """
++
++    description: str
++    metric: str
++    min_value: Optional[float] = None
++    max_value: Optional[float] = None
++
++    def evaluate(self, actions: ControlActions) -> "CheckResult":
++        """
++        Verilen ControlActions çıktısına göre kriterin geçip geçmediğini hesaplar.
++        """
++
++        actual_value = getattr(actions, self.metric)
++        passed = True
++
++        if self.min_value is not None and actual_value < self.min_value:
++            passed = False
++
++        if self.max_value is not None and actual_value > self.max_value:
++            passed = False
++
++        return CheckResult(
++            description=self.description,
++            metric=self.metric,
++            actual_value=actual_value,
++            min_value=self.min_value,
++            max_value=self.max_value,
++            passed=passed,
++        )
++
++
++@dataclass
++class CheckResult:
++    """
++    Bir doğrulama kriterinin sonucunu temsil eder.
++    """
++
++    description: str
++    metric: str
++    actual_value: float
++    min_value: Optional[float]
++    max_value: Optional[float]
++    passed: bool
++
++    def expected_range_text(self) -> str:
++        """
++        Beklenen aralığı terminal için okunabilir metne dönüştürür.
++        """
++
++        if self.min_value is not None and self.max_value is not None:
++            return f"{self.min_value:.1f} <= değer <= {self.max_value:.1f}"
++
++        if self.min_value is not None:
++            return f"değer >= {self.min_value:.1f}"
+ 
+-    Her senaryoda:
+-        - Bir ad
+-        - Açıklama
+-        - Sensör giriş değerleri
+-        - Beklenen davranış özeti
++        if self.max_value is not None:
++            return f"değer <= {self.max_value:.1f}"
+ 
+-    tutulur.
++        return "sayısal sınır yok"
++
++
++@dataclass
++class TestScenario:
++    """
++    Tek bir test senaryosunu temsil eden veri sınıfı.
+     """
+ 
+     name: str
+     description: str
+     readings: SensorReadings
+     expected_behavior: str
++    expected_checks: List[ExpectedCheck]
+ 
+ 
+ def create_test_scenarios() -> List[TestScenario]:
+@@ -69,6 +145,12 @@ def create_test_scenarios() -> List[TestScenario]:
+                 "Sulama, havalandırma ve alarm düşük/kapalı olmalı; "
+                 "gölgeleme düşük seviyede kalabilir."
+             ),
++            expected_checks=[
++                ExpectedCheck("Normal koşulda sulama düşük kalmalı", "irrigation_level", max_value=10.0),
++                ExpectedCheck("Normal koşulda fan düşük kalmalı", "ventilation_level", max_value=15.0),
++                ExpectedCheck("Normal koşulda gölgeleme düşük kalmalı", "shading_level", max_value=20.0),
++                ExpectedCheck("Normal koşulda alarm üretilmemeli", "alarm_level", max_value=10.0),
++            ],
+         ),
+         TestScenario(
+             name="Senaryo 2 - Toprak Kuru, Su Yeterli",
+@@ -80,9 +162,11 @@ def create_test_scenarios() -> List[TestScenario]:
+                 light_level=60.0,
+                 water_tank_level=80.0,
+             ),
+-            expected_behavior=(
+-                "Sulama yüksek olmalı, alarm düşük veya kapalı kalmalıdır."
+-            ),
++            expected_behavior="Sulama yüksek olmalı, alarm düşük veya kapalı kalmalıdır.",
++            expected_checks=[
++                ExpectedCheck("Kuru toprakta sulama yüksek olmalı", "irrigation_level", min_value=70.0),
++                ExpectedCheck("Su yeterliyken alarm düşük kalmalı", "alarm_level", max_value=20.0),
++            ],
+         ),
+         TestScenario(
+             name="Senaryo 3 - Toprak Kuru, Su Tankı Düşük",
+@@ -94,9 +178,11 @@ def create_test_scenarios() -> List[TestScenario]:
+                 light_level=65.0,
+                 water_tank_level=15.0,
+             ),
+-            expected_behavior=(
+-                "Sulama sınırlı tutulmalı, alarm yüksek veya kritik olmalıdır."
+-            ),
++            expected_behavior="Sulama sınırlı tutulmalı, alarm yüksek veya kritik olmalıdır.",
++            expected_checks=[
++                ExpectedCheck("Su azlığında sulama sınırlanmalı", "irrigation_level", max_value=40.0),
++                ExpectedCheck("Su azlığında alarm yüksek olmalı", "alarm_level", min_value=80.0),
++            ],
+         ),
+         TestScenario(
+             name="Senaryo 4 - Sıcaklık Yüksek",
+@@ -108,9 +194,10 @@ def create_test_scenarios() -> List[TestScenario]:
+                 light_level=65.0,
+                 water_tank_level=75.0,
+             ),
+-            expected_behavior=(
+-                "Havalandırma yüksek seviyede olmalıdır."
+-            ),
++            expected_behavior="Havalandırma yüksek seviyede olmalıdır.",
++            expected_checks=[
++                ExpectedCheck("Yüksek sıcaklıkta fan yüksek olmalı", "ventilation_level", min_value=60.0),
++            ],
+         ),
+         TestScenario(
+             name="Senaryo 5 - Sıcaklık ve Işık Yüksek",
+@@ -122,9 +209,11 @@ def create_test_scenarios() -> List[TestScenario]:
+                 light_level=90.0,
+                 water_tank_level=70.0,
+             ),
+-            expected_behavior=(
+-                "Havalandırma ve gölgeleme yüksek seviyede olmalıdır."
+-            ),
++            expected_behavior="Havalandırma ve gölgeleme yüksek seviyede olmalıdır.",
++            expected_checks=[
++                ExpectedCheck("Yüksek sıcaklıkta fan yüksek olmalı", "ventilation_level", min_value=60.0),
++                ExpectedCheck("Yüksek ışıkta gölgeleme yüksek olmalı", "shading_level", min_value=70.0),
++            ],
+         ),
+         TestScenario(
+             name="Senaryo 6 - Hava Nemi ve Toprak Nemi Yüksek",
+@@ -136,9 +225,11 @@ def create_test_scenarios() -> List[TestScenario]:
+                 light_level=50.0,
+                 water_tank_level=75.0,
+             ),
+-            expected_behavior=(
+-                "Sulama kapalı olmalı, hastalık riski uyarısı üretilebilir."
+-            ),
++            expected_behavior="Sulama kapalı olmalı, hastalık riski uyarısı üretilebilir.",
++            expected_checks=[
++                ExpectedCheck("Islak toprakta sulama kapalı kalmalı", "irrigation_level", max_value=10.0),
++                ExpectedCheck("Yüksek nem ve ıslak toprakta risk alarmı oluşmalı", "alarm_level", min_value=50.0),
++            ],
+         ),
+         TestScenario(
+             name="Senaryo 7 - Su Tankı Kritik Düşük",
+@@ -150,9 +241,10 @@ def create_test_scenarios() -> List[TestScenario]:
+                 light_level=55.0,
+                 water_tank_level=10.0,
+             ),
+-            expected_behavior=(
+-                "Alarm yüksek olmalı, su tankı kritik uyarısı verilmelidir."
+-            ),
++            expected_behavior="Alarm yüksek olmalı, su tankı kritik uyarısı verilmelidir.",
++            expected_checks=[
++                ExpectedCheck("Kritik düşük su tankında alarm yüksek olmalı", "alarm_level", min_value=80.0),
++            ],
+         ),
+         TestScenario(
+             name="Senaryo 8 - Kritik Bitki Stresi",
+@@ -168,6 +260,12 @@ def create_test_scenarios() -> List[TestScenario]:
+                 "Alarm kritik olmalı; fan ve gölgeleme yüksek çalışmalı; "
+                 "sulama su tankı nedeniyle sınırlanabilir."
+             ),
++            expected_checks=[
++                ExpectedCheck("Kritik streste alarm kritik olmalı", "alarm_level", min_value=90.0),
++                ExpectedCheck("Kritik streste fan yüksek olmalı", "ventilation_level", min_value=60.0),
++                ExpectedCheck("Kritik streste gölgeleme yüksek olmalı", "shading_level", min_value=70.0),
++                ExpectedCheck("Düşük su tankında sulama sınırlanmalı", "irrigation_level", max_value=40.0),
++            ],
+         ),
+         TestScenario(
+             name="Senaryo 9 - Işık Düşük",
+@@ -179,9 +277,11 @@ def create_test_scenarios() -> List[TestScenario]:
+                 light_level=20.0,
+                 water_tank_level=80.0,
+             ),
+-            expected_behavior=(
+-                "Gölgeleme kapalı olmalı, alarm üretilmemelidir."
+-            ),
++            expected_behavior="Gölgeleme kapalı olmalı, alarm üretilmemelidir.",
++            expected_checks=[
++                ExpectedCheck("Düşük ışıkta gölgeleme kapalı kalmalı", "shading_level", max_value=10.0),
++                ExpectedCheck("Düşük ışık tek başına alarm üretmemeli", "alarm_level", max_value=10.0),
++            ],
+         ),
+         TestScenario(
+             name="Senaryo 10 - Düşük Sıcaklık",
+@@ -193,9 +293,11 @@ def create_test_scenarios() -> List[TestScenario]:
+                 light_level=45.0,
+                 water_tank_level=80.0,
+             ),
+-            expected_behavior=(
+-                "Havalandırma kapalı olmalı, gereksiz müdahale yapılmamalıdır."
+-            ),
++            expected_behavior="Havalandırma kapalı olmalı, gereksiz müdahale yapılmamalıdır.",
++            expected_checks=[
++                ExpectedCheck("Düşük sıcaklıkta fan kapalı kalmalı", "ventilation_level", max_value=10.0),
++                ExpectedCheck("Düşük sıcaklık tek başına alarm üretmemeli", "alarm_level", max_value=20.0),
++            ],
+         ),
+     ]
+ 
+@@ -263,13 +365,42 @@ def print_explanation(explanation: DecisionExplanation) -> None:
+         print("Uyarılar: Yok")
+ 
+ 
++def print_check_results(results: List[CheckResult]) -> bool:
++    """
++    Doğrulama sonuçlarını terminale yazar.
++
++    Returns:
++        Tüm kriterler geçtiyse True, aksi halde False.
++    """
++
++    print("Doğrulama Sonuçları:")
++
++    all_passed = True
++
++    for result in results:
++        status = "GEÇTİ" if result.passed else "KALDI"
++        if not result.passed:
++            all_passed = False
++
++        print(
++            f"  [{status}] {result.description} | "
++            f"Gerçek: {result.actual_value:.1f} | "
++            f"Beklenen: {result.expected_range_text()}"
++        )
++
++    return all_passed
++
++
+ def run_single_scenario(
+     scenario: TestScenario,
+     fuzzy_engine: FuzzyEngine,
+     explanation_engine: ExplanationEngine,
+-) -> None:
++) -> bool:
+     """
+-    Tek bir test senaryosunu çalıştırır ve sonucunu terminale yazdırır.
++    Tek bir test senaryosunu çalıştırır, doğrular ve sonucunu terminale yazdırır.
++
++    Returns:
++        Senaryodaki tüm doğrulama kriterleri geçtiyse True döner.
+     """
+ 
+     print("=" * 100)
+@@ -283,7 +414,6 @@ def run_single_scenario(
+     print("Giriş Sensör Değerleri:")
+     print(f"  {format_readings(scenario.readings)}")
+ 
+-    # Fuzzy karar motoru bu senaryonun sensör değerlerini değerlendirir.
+     actions = fuzzy_engine.evaluate(scenario.readings)
+ 
+     print("Üretilen Kontrol Aksiyonları:")
+@@ -299,7 +429,12 @@ def run_single_scenario(
+     )
+ 
+     print_explanation(explanation)
++
++    check_results = [check.evaluate(actions) for check in scenario.expected_checks]
++    scenario_passed = print_check_results(check_results)
++
+     print()
++    return scenario_passed
+ 
+ 
+ def main() -> None:
+@@ -314,17 +449,27 @@ def main() -> None:
+     print("\nAKILLI SERA KARAR MOTORU - TEST SENARYOLARI")
+     print(f"Toplam senaryo sayısı: {len(scenarios)}\n")
+ 
++    passed_count = 0
++
+     for scenario in scenarios:
+-        run_single_scenario(
++        scenario_passed = run_single_scenario(
+             scenario=scenario,
+             fuzzy_engine=fuzzy_engine,
+             explanation_engine=explanation_engine,
+         )
+ 
++        if scenario_passed:
++            passed_count += 1
++
++    failed_count = len(scenarios) - passed_count
++
+     print("=" * 100)
+-    print("Tüm test senaryoları tamamlandı.")
++    print(f"Test özeti: {passed_count}/{len(scenarios)} senaryo geçti, {failed_count} senaryo kaldı.")
+     print("=" * 100)
+ 
++    if failed_count > 0:
++        raise SystemExit(1)
++
+ 
+ if __name__ == "__main__":
+-    main()
+\ No newline at end of file
++    main()
+diff --git a/src/decision/rule_base.py b/src/decision/rule_base.py
+index e69de29..2f49028 100644
+--- a/src/decision/rule_base.py
++++ b/src/decision/rule_base.py
+@@ -0,0 +1,120 @@
++"""
++rule_base.py
++
++Bu dosya, fuzzy karar motorunda kullanılan uzman sistem kurallarını dokümantasyon
++amaçlı merkezi bir listede tutar.
++
++Not:
++    FuzzyEngine şu anda kuralları kendi evaluate metodu içinde çalıştırmaktadır.
++    Bu dosya doğrudan çıkarım motoru olarak kullanılmaz. Amacı, rapor, sunum,
++    teknik dokümantasyon veya ileride yapılacak refaktör işlemleri için kural
++    tabanını okunabilir biçimde göstermektir.
++"""
++
++from __future__ import annotations
++
++from dataclasses import dataclass
++from typing import List
++
++
++@dataclass(frozen=True)
++class RuleDescription:
++    """
++    Uzman sistem kuralının insan tarafından okunabilir açıklamasını temsil eder.
++    """
++
++    category: str
++    condition: str
++    decision: str
++
++
++FUZZY_RULE_DESCRIPTIONS: List[RuleDescription] = [
++    RuleDescription(
++        category="Sulama",
++        condition="Toprak kuru ve su tankı orta/yeterli seviyede",
++        decision="Sulama yüksek seviyede çalıştırılır.",
++    ),
++    RuleDescription(
++        category="Sulama",
++        condition="Toprak kuru, sıcaklık yüksek ve su tankı orta/yeterli seviyede",
++        decision="Sulama çok yüksek seviyede çalıştırılır.",
++    ),
++    RuleDescription(
++        category="Sulama + Alarm",
++        condition="Toprak kuru fakat su tankı düşük seviyede",
++        decision="Sulama sınırlanır ve alarm yükseltilir.",
++    ),
++    RuleDescription(
++        category="Sulama",
++        condition="Toprak nemi uygun veya ıslak",
++        decision="Sulama kapalı tutulur.",
++    ),
++    RuleDescription(
++        category="Havalandırma",
++        condition="Sıcaklık yüksek ve hava nemi yüksek",
++        decision="Fan yüksek seviyede çalıştırılır.",
++    ),
++    RuleDescription(
++        category="Havalandırma",
++        condition="Sıcaklık yüksek ve hava nemi düşük/normal",
++        decision="Fan orta-yüksek seviyede çalıştırılır.",
++    ),
++    RuleDescription(
++        category="Havalandırma",
++        condition="Sıcaklık normal ve hava nemi yüksek",
++        decision="Fan orta seviyede çalıştırılır.",
++    ),
++    RuleDescription(
++        category="Havalandırma",
++        condition="Sıcaklık düşük",
++        decision="Fan kapalı tutulur.",
++    ),
++    RuleDescription(
++        category="Gölgeleme",
++        condition="Işık yüksek ve sıcaklık yüksek",
++        decision="Gölgeleme yüksek seviyede uygulanır.",
++    ),
++    RuleDescription(
++        category="Gölgeleme",
++        condition="Işık yüksek ve sıcaklık normal",
++        decision="Gölgeleme orta seviyede uygulanır.",
++    ),
++    RuleDescription(
++        category="Gölgeleme",
++        condition="Işık düşük",
++        decision="Gölgeleme kapalı tutulur.",
++    ),
++    RuleDescription(
++        category="Gölgeleme",
++        condition="Işık orta seviyede",
++        decision="Gölgeleme düşük seviyede uygulanır.",
++    ),
++    RuleDescription(
++        category="Alarm",
++        condition="Su tankı düşük",
++        decision="Alarm yüksek seviyeye çıkarılır.",
++    ),
++    RuleDescription(
++        category="Alarm",
++        condition="Su tankı düşük ve toprak kuru",
++        decision="Alarm kritik seviyeye çıkarılır.",
++    ),
++    RuleDescription(
++        category="Alarm",
++        condition="Sıcaklık yüksek, toprak kuru ve hava nemi düşük",
++        decision="Bitki stresi alarmı oluşturulur.",
++    ),
++    RuleDescription(
++        category="Alarm",
++        condition="Toprak ıslak ve hava nemi yüksek",
++        decision="Hastalık riski alarmı oluşturulur.",
++    ),
++]
++
++
++def get_rule_descriptions() -> List[RuleDescription]:
++    """
++    Fuzzy uzman sistem kurallarını okunabilir açıklama listesi olarak döndürür.
++    """
++
++    return FUZZY_RULE_DESCRIPTIONS
