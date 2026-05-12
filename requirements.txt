@@ -1,4 +1,3 @@
-# İlk terminal prototipi yalnızca Python standart kütüphanelerini kullanmaktadır.
 # Dashboard aşamasında streamlit, pandas ve plotly gibi paketler eklenecektir.
 
 streamlit
