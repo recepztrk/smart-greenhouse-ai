@@ -2,12 +2,13 @@
 run_test_scenarios.py
 
 Bu dosya, Akıllı Sera Yönetim ve Karar Destek Sistemi için önceden tanımlanmış
-test senaryolarını çalıştırır.
+test senaryolarını çalıştırır ve üretilen kararları beklenen davranışlara göre doğrular.
 
 Amaç:
     - Fuzzy karar motorunun farklı sera koşullarında nasıl davrandığını görmek
-    - Karar açıklama modülünün doğru gerekçeler üretip üretmediğini kontrol etmek
-    - Proje raporunda kullanılabilecek örnek test çıktıları elde etmek
+    - Üretilen aksiyonları sayısal kabul kriterleriyle kontrol etmek
+    - Karar açıklama modülünün ürettiği gerekçeleri terminal çıktısında göstermek
+    - Proje raporunda kullanılabilecek test sonuçları elde etmek
 
 Bu script doğrudan simülasyon döngüsü çalıştırmaz.
 Bunun yerine belirli sensör değerlerini elle vererek karar motorunu test eder.
@@ -18,8 +19,17 @@ Bunun yerine belirli sensör değerlerini elle vererek karar motorunu test eder.
 
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
-from typing import List
+from pathlib import Path
+from typing import List, Optional
+
+# Script doğrudan `python scripts/run_test_scenarios.py` komutuyla çalıştırıldığında
+# Python, proje kökünü otomatik olarak import path içine almayabilir.
+# Bu blok, `src` paketinin her ortamda bulunmasını garanti eder.
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.decision.actions import ControlActions
 from src.decision.fuzzy_engine import FuzzyEngine, RuleActivation
@@ -28,23 +38,89 @@ from src.simulation.virtual_sensors import SensorReadings
 
 
 @dataclass
+class ExpectedCheck:
+    """
+    Bir senaryo için sayısal doğrulama kriterini temsil eder.
+
+    metric:
+        ControlActions içindeki kontrol çıktısı adı.
+        Örnek: irrigation_level, ventilation_level, shading_level, alarm_level
+
+    min_value / max_value:
+        İlgili aksiyonun kabul edilebilir alt ve üst sınırları.
+        Yalnızca gerekli olan sınır doldurulabilir.
+    """
+
+    description: str
+    metric: str
+    min_value: Optional[float] = None
+    max_value: Optional[float] = None
+
+    def evaluate(self, actions: ControlActions) -> "CheckResult":
+        """
+        Verilen ControlActions çıktısına göre kriterin geçip geçmediğini hesaplar.
+        """
+
+        actual_value = getattr(actions, self.metric)
+        passed = True
+
+        if self.min_value is not None and actual_value < self.min_value:
+            passed = False
+
+        if self.max_value is not None and actual_value > self.max_value:
+            passed = False
+
+        return CheckResult(
+            description=self.description,
+            metric=self.metric,
+            actual_value=actual_value,
+            min_value=self.min_value,
+            max_value=self.max_value,
+            passed=passed,
+        )
+
+
+@dataclass
+class CheckResult:
+    """
+    Bir doğrulama kriterinin sonucunu temsil eder.
+    """
+
+    description: str
+    metric: str
+    actual_value: float
+    min_value: Optional[float]
+    max_value: Optional[float]
+    passed: bool
+
+    def expected_range_text(self) -> str:
+        """
+        Beklenen aralığı terminal için okunabilir metne dönüştürür.
+        """
+
+        if self.min_value is not None and self.max_value is not None:
+            return f"{self.min_value:.1f} <= değer <= {self.max_value:.1f}"
+
+        if self.min_value is not None:
+            return f"değer >= {self.min_value:.1f}"
+
+        if self.max_value is not None:
+            return f"değer <= {self.max_value:.1f}"
+
+        return "sayısal sınır yok"
+
+
+@dataclass
 class TestScenario:
     """
     Tek bir test senaryosunu temsil eden veri sınıfı.
-
-    Her senaryoda:
-        - Bir ad
-        - Açıklama
-        - Sensör giriş değerleri
-        - Beklenen davranış özeti
-
-    tutulur.
     """
 
     name: str
     description: str
     readings: SensorReadings
     expected_behavior: str
+    expected_checks: List[ExpectedCheck]
 
 
 def create_test_scenarios() -> List[TestScenario]:
@@ -69,6 +145,12 @@ def create_test_scenarios() -> List[TestScenario]:
                 "Sulama, havalandırma ve alarm düşük/kapalı olmalı; "
                 "gölgeleme düşük seviyede kalabilir."
             ),
+            expected_checks=[
+                ExpectedCheck("Normal koşulda sulama düşük kalmalı", "irrigation_level", max_value=10.0),
+                ExpectedCheck("Normal koşulda fan düşük kalmalı", "ventilation_level", max_value=15.0),
+                ExpectedCheck("Normal koşulda gölgeleme düşük kalmalı", "shading_level", max_value=20.0),
+                ExpectedCheck("Normal koşulda alarm üretilmemeli", "alarm_level", max_value=10.0),
+            ],
         ),
         TestScenario(
             name="Senaryo 2 - Toprak Kuru, Su Yeterli",
@@ -80,9 +162,11 @@ def create_test_scenarios() -> List[TestScenario]:
                 light_level=60.0,
                 water_tank_level=80.0,
             ),
-            expected_behavior=(
-                "Sulama yüksek olmalı, alarm düşük veya kapalı kalmalıdır."
-            ),
+            expected_behavior="Sulama yüksek olmalı, alarm düşük veya kapalı kalmalıdır.",
+            expected_checks=[
+                ExpectedCheck("Kuru toprakta sulama yüksek olmalı", "irrigation_level", min_value=70.0),
+                ExpectedCheck("Su yeterliyken alarm düşük kalmalı", "alarm_level", max_value=20.0),
+            ],
         ),
         TestScenario(
             name="Senaryo 3 - Toprak Kuru, Su Tankı Düşük",
@@ -94,9 +178,11 @@ def create_test_scenarios() -> List[TestScenario]:
                 light_level=65.0,
                 water_tank_level=15.0,
             ),
-            expected_behavior=(
-                "Sulama sınırlı tutulmalı, alarm yüksek veya kritik olmalıdır."
-            ),
+            expected_behavior="Sulama sınırlı tutulmalı, alarm yüksek veya kritik olmalıdır.",
+            expected_checks=[
+                ExpectedCheck("Su azlığında sulama sınırlanmalı", "irrigation_level", max_value=40.0),
+                ExpectedCheck("Su azlığında alarm yüksek olmalı", "alarm_level", min_value=80.0),
+            ],
         ),
         TestScenario(
             name="Senaryo 4 - Sıcaklık Yüksek",
@@ -108,9 +194,10 @@ def create_test_scenarios() -> List[TestScenario]:
                 light_level=65.0,
                 water_tank_level=75.0,
             ),
-            expected_behavior=(
-                "Havalandırma yüksek seviyede olmalıdır."
-            ),
+            expected_behavior="Havalandırma yüksek seviyede olmalıdır.",
+            expected_checks=[
+                ExpectedCheck("Yüksek sıcaklıkta fan yüksek olmalı", "ventilation_level", min_value=60.0),
+            ],
         ),
         TestScenario(
             name="Senaryo 5 - Sıcaklık ve Işık Yüksek",
@@ -122,9 +209,11 @@ def create_test_scenarios() -> List[TestScenario]:
                 light_level=90.0,
                 water_tank_level=70.0,
             ),
-            expected_behavior=(
-                "Havalandırma ve gölgeleme yüksek seviyede olmalıdır."
-            ),
+            expected_behavior="Havalandırma ve gölgeleme yüksek seviyede olmalıdır.",
+            expected_checks=[
+                ExpectedCheck("Yüksek sıcaklıkta fan yüksek olmalı", "ventilation_level", min_value=60.0),
+                ExpectedCheck("Yüksek ışıkta gölgeleme yüksek olmalı", "shading_level", min_value=70.0),
+            ],
         ),
         TestScenario(
             name="Senaryo 6 - Hava Nemi ve Toprak Nemi Yüksek",
@@ -136,9 +225,11 @@ def create_test_scenarios() -> List[TestScenario]:
                 light_level=50.0,
                 water_tank_level=75.0,
             ),
-            expected_behavior=(
-                "Sulama kapalı olmalı, hastalık riski uyarısı üretilebilir."
-            ),
+            expected_behavior="Sulama kapalı olmalı, hastalık riski uyarısı üretilebilir.",
+            expected_checks=[
+                ExpectedCheck("Islak toprakta sulama kapalı kalmalı", "irrigation_level", max_value=10.0),
+                ExpectedCheck("Yüksek nem ve ıslak toprakta risk alarmı oluşmalı", "alarm_level", min_value=50.0),
+            ],
         ),
         TestScenario(
             name="Senaryo 7 - Su Tankı Kritik Düşük",
@@ -150,9 +241,10 @@ def create_test_scenarios() -> List[TestScenario]:
                 light_level=55.0,
                 water_tank_level=10.0,
             ),
-            expected_behavior=(
-                "Alarm yüksek olmalı, su tankı kritik uyarısı verilmelidir."
-            ),
+            expected_behavior="Alarm yüksek olmalı, su tankı kritik uyarısı verilmelidir.",
+            expected_checks=[
+                ExpectedCheck("Kritik düşük su tankında alarm yüksek olmalı", "alarm_level", min_value=80.0),
+            ],
         ),
         TestScenario(
             name="Senaryo 8 - Kritik Bitki Stresi",
@@ -168,6 +260,12 @@ def create_test_scenarios() -> List[TestScenario]:
                 "Alarm kritik olmalı; fan ve gölgeleme yüksek çalışmalı; "
                 "sulama su tankı nedeniyle sınırlanabilir."
             ),
+            expected_checks=[
+                ExpectedCheck("Kritik streste alarm kritik olmalı", "alarm_level", min_value=90.0),
+                ExpectedCheck("Kritik streste fan yüksek olmalı", "ventilation_level", min_value=60.0),
+                ExpectedCheck("Kritik streste gölgeleme yüksek olmalı", "shading_level", min_value=70.0),
+                ExpectedCheck("Düşük su tankında sulama sınırlanmalı", "irrigation_level", max_value=40.0),
+            ],
         ),
         TestScenario(
             name="Senaryo 9 - Işık Düşük",
@@ -179,9 +277,11 @@ def create_test_scenarios() -> List[TestScenario]:
                 light_level=20.0,
                 water_tank_level=80.0,
             ),
-            expected_behavior=(
-                "Gölgeleme kapalı olmalı, alarm üretilmemelidir."
-            ),
+            expected_behavior="Gölgeleme kapalı olmalı, alarm üretilmemelidir.",
+            expected_checks=[
+                ExpectedCheck("Düşük ışıkta gölgeleme kapalı kalmalı", "shading_level", max_value=10.0),
+                ExpectedCheck("Düşük ışık tek başına alarm üretmemeli", "alarm_level", max_value=10.0),
+            ],
         ),
         TestScenario(
             name="Senaryo 10 - Düşük Sıcaklık",
@@ -193,9 +293,11 @@ def create_test_scenarios() -> List[TestScenario]:
                 light_level=45.0,
                 water_tank_level=80.0,
             ),
-            expected_behavior=(
-                "Havalandırma kapalı olmalı, gereksiz müdahale yapılmamalıdır."
-            ),
+            expected_behavior="Havalandırma kapalı olmalı, gereksiz müdahale yapılmamalıdır.",
+            expected_checks=[
+                ExpectedCheck("Düşük sıcaklıkta fan kapalı kalmalı", "ventilation_level", max_value=10.0),
+                ExpectedCheck("Düşük sıcaklık tek başına alarm üretmemeli", "alarm_level", max_value=20.0),
+            ],
         ),
     ]
 
@@ -263,13 +365,42 @@ def print_explanation(explanation: DecisionExplanation) -> None:
         print("Uyarılar: Yok")
 
 
+def print_check_results(results: List[CheckResult]) -> bool:
+    """
+    Doğrulama sonuçlarını terminale yazar.
+
+    Returns:
+        Tüm kriterler geçtiyse True, aksi halde False.
+    """
+
+    print("Doğrulama Sonuçları:")
+
+    all_passed = True
+
+    for result in results:
+        status = "GEÇTİ" if result.passed else "KALDI"
+        if not result.passed:
+            all_passed = False
+
+        print(
+            f"  [{status}] {result.description} | "
+            f"Gerçek: {result.actual_value:.1f} | "
+            f"Beklenen: {result.expected_range_text()}"
+        )
+
+    return all_passed
+
+
 def run_single_scenario(
     scenario: TestScenario,
     fuzzy_engine: FuzzyEngine,
     explanation_engine: ExplanationEngine,
-) -> None:
+) -> bool:
     """
-    Tek bir test senaryosunu çalıştırır ve sonucunu terminale yazdırır.
+    Tek bir test senaryosunu çalıştırır, doğrular ve sonucunu terminale yazdırır.
+
+    Returns:
+        Senaryodaki tüm doğrulama kriterleri geçtiyse True döner.
     """
 
     print("=" * 100)
@@ -283,7 +414,6 @@ def run_single_scenario(
     print("Giriş Sensör Değerleri:")
     print(f"  {format_readings(scenario.readings)}")
 
-    # Fuzzy karar motoru bu senaryonun sensör değerlerini değerlendirir.
     actions = fuzzy_engine.evaluate(scenario.readings)
 
     print("Üretilen Kontrol Aksiyonları:")
@@ -299,7 +429,12 @@ def run_single_scenario(
     )
 
     print_explanation(explanation)
+
+    check_results = [check.evaluate(actions) for check in scenario.expected_checks]
+    scenario_passed = print_check_results(check_results)
+
     print()
+    return scenario_passed
 
 
 def main() -> None:
@@ -314,16 +449,26 @@ def main() -> None:
     print("\nAKILLI SERA KARAR MOTORU - TEST SENARYOLARI")
     print(f"Toplam senaryo sayısı: {len(scenarios)}\n")
 
+    passed_count = 0
+
     for scenario in scenarios:
-        run_single_scenario(
+        scenario_passed = run_single_scenario(
             scenario=scenario,
             fuzzy_engine=fuzzy_engine,
             explanation_engine=explanation_engine,
         )
 
+        if scenario_passed:
+            passed_count += 1
+
+    failed_count = len(scenarios) - passed_count
+
     print("=" * 100)
-    print("Tüm test senaryoları tamamlandı.")
+    print(f"Test özeti: {passed_count}/{len(scenarios)} senaryo geçti, {failed_count} senaryo kaldı.")
     print("=" * 100)
+
+    if failed_count > 0:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

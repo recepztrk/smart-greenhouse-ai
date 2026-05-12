@@ -1,10 +1,12 @@
 # Test Senaryoları
 
-Bu dosya, Akıllı Sera Yönetim ve Karar Destek Sistemi için temel test senaryolarını içerir.
+Bu doküman, **Akıllı Sera Yönetim ve Karar Destek Sistemi** için hazırlanan temel test senaryolarını açıklar.
 
-Amaç, fuzzy karar motorunun farklı sera koşullarında beklenen davranışı üretip üretmediğini kontrol etmektir.
+Amaç, fuzzy karar motorunun farklı sera koşullarında beklenen davranışı üretip üretmediğini kontrol etmektir. Testler yalnızca gözlem amaçlı değildir; `scripts/run_test_scenarios.py` dosyası her senaryo için sayısal kabul kriterleri uygular ve senaryonun geçip geçmediğini terminalde gösterir.
 
-Sistem aşağıdaki giriş değişkenlerini kullanır:
+---
+
+## Kullanılan Giriş Değişkenleri
 
 - Sıcaklık
 - Hava nemi
@@ -12,12 +14,31 @@ Sistem aşağıdaki giriş değişkenlerini kullanır:
 - Işık seviyesi
 - Su tankı seviyesi
 
-Sistem aşağıdaki kontrol kararlarını üretir:
+## Üretilen Kontrol Çıktıları
 
 - Sulama seviyesi
-- Havalandırma seviyesi
+- Havalandırma / fan seviyesi
 - Gölgeleme seviyesi
 - Alarm seviyesi
+
+Tüm kontrol çıktıları 0-100 aralığında değerlendirilir.
+
+---
+
+## Senaryo Özeti ve Kabul Kriterleri
+
+| No | Senaryo | Beklenen Ana Davranış | Sayısal Kabul Kriteri |
+|---:|---|---|---|
+| 1 | Normal sera koşulları | Gereksiz müdahale yapılmamalı | Sulama ≤ 10, fan ≤ 15, gölgeleme ≤ 20, alarm ≤ 10 |
+| 2 | Toprak kuru, su yeterli | Sulama yüksek olmalı | Sulama ≥ 70, alarm ≤ 20 |
+| 3 | Toprak kuru, su tankı düşük | Sulama sınırlanmalı, alarm yükselmeli | Sulama ≤ 40, alarm ≥ 80 |
+| 4 | Sıcaklık yüksek | Fan yüksek çalışmalı | Fan ≥ 60 |
+| 5 | Sıcaklık ve ışık yüksek | Fan ve gölgeleme yüksek olmalı | Fan ≥ 60, gölgeleme ≥ 70 |
+| 6 | Hava nemi ve toprak nemi yüksek | Sulama kapalı, hastalık riski uyarısı | Sulama ≤ 10, alarm ≥ 50 |
+| 7 | Su tankı kritik düşük | Alarm yüksek olmalı | Alarm ≥ 80 |
+| 8 | Kritik bitki stresi | Alarm kritik, fan/gölgeleme yüksek, sulama sınırlı | Alarm ≥ 90, fan ≥ 60, gölgeleme ≥ 70, sulama ≤ 40 |
+| 9 | Işık düşük | Gölgeleme kapalı olmalı | Gölgeleme ≤ 10, alarm ≤ 10 |
+| 10 | Düşük sıcaklık | Fan kapalı olmalı | Fan ≤ 10, alarm ≤ 20 |
 
 ---
 
@@ -35,14 +56,7 @@ Sistem aşağıdaki kontrol kararlarını üretir:
 
 ### Beklenen Davranış
 
-- Sulama kapalı veya çok düşük seviyede olmalıdır.
-- Havalandırma kapalı veya düşük seviyede olmalıdır.
-- Gölgeleme düşük seviyede olmalıdır.
-- Alarm üretilmemelidir.
-
-### Yorum
-
-Bu senaryo sera ortamının dengeli olduğu durumu temsil eder. Sistem gereksiz müdahale üretmemelidir.
+Sera ortamı dengeli olduğu için sistem gereksiz müdahale üretmemelidir. Sulama, fan ve alarm düşük/kapalı kalmalı; gölgeleme en fazla düşük seviyede olmalıdır.
 
 ---
 
@@ -60,14 +74,7 @@ Bu senaryo sera ortamının dengeli olduğu durumu temsil eder. Sistem gereksiz 
 
 ### Beklenen Davranış
 
-- Sulama yüksek seviyede olmalıdır.
-- Havalandırma düşük veya orta seviyede olabilir.
-- Gölgeleme düşük seviyede olabilir.
-- Alarm üretilmemelidir veya düşük seviyede kalmalıdır.
-
-### Yorum
-
-Toprak nemi düşük olduğu için sistem sulama kararı üretmelidir. Su tankı yeterli olduğu için sulama kısıtlanmamalıdır.
+Toprak nemi düşük olduğu için sistem belirgin sulama kararı üretmelidir. Su tankı yeterli olduğundan alarm düşük veya kapalı kalmalıdır.
 
 ---
 
@@ -85,13 +92,7 @@ Toprak nemi düşük olduğu için sistem sulama kararı üretmelidir. Su tankı
 
 ### Beklenen Davranış
 
-- Sulama tamamen yüksek olmamalı, sınırlı tutulmalıdır.
-- Alarm yüksek veya kritik seviyede olmalıdır.
-- Sistem açıklamasında su tankı seviyesinin düşük olduğu belirtilmelidir.
-
-### Yorum
-
-Toprak kuru olduğu için sulama ihtiyacı vardır. Ancak su tankı düşük olduğu için sistem sınırsız sulama yapmamalı ve kullanıcıyı uyarmalıdır.
+Toprak kuru olduğu için sulama ihtiyacı vardır. Ancak su tankı düşük olduğu için sulama sınırsız yapılmamalı; sistem alarm üretmelidir.
 
 ---
 
@@ -108,13 +109,6 @@ Toprak kuru olduğu için sulama ihtiyacı vardır. Ancak su tankı düşük old
 | Su tankı seviyesi | %75 |
 
 ### Beklenen Davranış
-
-- Havalandırma yüksek seviyede olmalıdır.
-- Sulama toprak nemine bağlı olarak düşük veya kapalı olabilir.
-- Gölgeleme ışık seviyesine bağlı olarak düşük veya orta seviyede olabilir.
-- Alarm düşük veya orta seviyede olabilir.
-
-### Yorum
 
 Bu senaryo sıcaklık stresini temsil eder. Sistem fan/havalandırma kararını belirgin şekilde artırmalıdır.
 
@@ -134,14 +128,7 @@ Bu senaryo sıcaklık stresini temsil eder. Sistem fan/havalandırma kararını 
 
 ### Beklenen Davranış
 
-- Havalandırma yüksek seviyede olmalıdır.
-- Gölgeleme yüksek seviyede olmalıdır.
-- Alarm orta seviyede olabilir.
-- Açıklamada yüksek sıcaklık ve yüksek ışık seviyesi vurgulanmalıdır.
-
-### Yorum
-
-Bu senaryoda bitki üzerinde ısı ve ışık stresi oluşabilir. Sistem hem fan hem gölgeleme aksiyonu üretmelidir.
+Yüksek sıcaklık ve yüksek ışık birlikte ısı/ışık stresi oluşturur. Sistem hem fan hem gölgeleme aksiyonunu yüksek seviyeye çıkarmalıdır.
 
 ---
 
@@ -159,14 +146,7 @@ Bu senaryoda bitki üzerinde ısı ve ışık stresi oluşabilir. Sistem hem fan
 
 ### Beklenen Davranış
 
-- Sulama kapalı olmalıdır.
-- Havalandırma orta seviyede olabilir.
-- Alarm düşük veya orta seviyede olabilir.
-- Açıklamada yüksek nem nedeniyle hastalık riski belirtilebilir.
-
-### Yorum
-
-Toprak ve hava nemi birlikte yüksek olduğunda bazı bitkiler için hastalık riski artabilir. Sistem sulamayı kapatmalı ve gerektiğinde uyarı üretmelidir.
+Toprak zaten ıslak olduğu için sulama kapalı kalmalıdır. Hava nemi ve toprak nemi birlikte yüksek olduğundan hastalık riski alarmı üretilebilir.
 
 ---
 
@@ -184,13 +164,7 @@ Toprak ve hava nemi birlikte yüksek olduğunda bazı bitkiler için hastalık r
 
 ### Beklenen Davranış
 
-- Alarm yüksek seviyede olmalıdır.
-- Sulama gerekiyorsa bile sınırlı tutulmalıdır.
-- Açıklamada su tankı seviyesinin kritik olduğu belirtilmelidir.
-
-### Yorum
-
-Bu senaryo sistemin kaynak farkındalığını test eder. Sistem yalnızca bitki ihtiyacına göre değil, mevcut su kaynağına göre de karar vermelidir.
+Bu senaryo sistemin kaynak farkındalığını test eder. Su tankı kritik seviyede olduğu için alarm yüksek olmalıdır.
 
 ---
 
@@ -208,15 +182,7 @@ Bu senaryo sistemin kaynak farkındalığını test eder. Sistem yalnızca bitki
 
 ### Beklenen Davranış
 
-- Alarm kritik seviyede olmalıdır.
-- Havalandırma yüksek seviyede olmalıdır.
-- Gölgeleme yüksek seviyede olmalıdır.
-- Sulama ihtiyacı vardır ancak su tankı düşük olduğu için sulama sınırlanabilir.
-- Açıklamada sıcaklık, toprak kuruluğu, düşük hava nemi ve düşük su tankı birlikte değerlendirilmelidir.
-
-### Yorum
-
-Bu senaryo sistemin en zor durumlarından biridir. Birden fazla risk aynı anda vardır. Sistem sadece tek değişkene göre karar vermemeli, bütün koşulları birlikte yorumlamalıdır.
+Birden fazla risk aynı anda vardır: yüksek sıcaklık, düşük hava nemi, kuru toprak, yüksek ışık ve düşük su tankı. Alarm kritik olmalı; fan ve gölgeleme yüksek çalışmalı; sulama ise su tankı nedeniyle sınırlanmalıdır.
 
 ---
 
@@ -234,14 +200,7 @@ Bu senaryo sistemin en zor durumlarından biridir. Birden fazla risk aynı anda 
 
 ### Beklenen Davranış
 
-- Gölgeleme kapalı olmalıdır.
-- Havalandırma kapalı veya düşük seviyede olmalıdır.
-- Sulama toprak nemine bağlı olarak kapalı veya düşük seviyede olabilir.
-- Alarm üretilmemelidir.
-
-### Yorum
-
-Işık düşük olduğu için gölgeleme yapılmamalıdır. Bu senaryo gölgeleme kararının ters durumunu test eder.
+Işık düşük olduğu için gölgeleme yapılmamalıdır. Bu koşul tek başına alarm üretmemelidir.
 
 ---
 
@@ -259,36 +218,20 @@ Işık düşük olduğu için gölgeleme yapılmamalıdır. Bu senaryo gölgelem
 
 ### Beklenen Davranış
 
-- Havalandırma kapalı olmalıdır.
-- Gölgeleme kapalı veya çok düşük seviyede olmalıdır.
-- Sulama toprak nemine göre kapalı veya düşük seviyede olabilir.
-- Alarm üretilmeyebilir.
-
-### Yorum
-
-Sıcaklık düşükken fan çalıştırmak sera koşullarını daha da kötüleştirebilir. Sistem bu durumda fanı kapalı tutmalıdır.
+Sıcaklık düşükken fan çalıştırmak sera koşullarını daha da kötüleştirebilir. Bu nedenle havalandırma kapalı tutulmalıdır.
 
 ---
 
-## Test Mantığı
+## Otomatik Test Komutu
 
-Bu senaryolar, sistemin aşağıdaki özelliklerini kontrol etmek için kullanılacaktır:
-
-- Kuru toprakta sulama kararı üretme
-- Su azlığında sulamayı sınırlama
-- Yüksek sıcaklıkta havalandırma üretme
-- Yüksek ışıkta gölgeleme üretme
-- Kritik durumlarda alarm üretme
-- Normal koşullarda gereksiz müdahaleden kaçınma
-- Karar açıklama modülünün doğru gerekçeleri üretmesi
-
----
-
-## Manuel Test Komutu
-
-Belirli senaryolar şu anda doğrudan terminal demosu üzerinden otomatik seçilememektedir.
-
-Ancak sistem genel davranışı aşağıdaki komutla gözlemlenebilir:
+Test senaryolarını çalıştırmak için:
 
 ```bash
-python app.py --steps 5 --no-noise
+python scripts/run_test_scenarios.py
+```
+
+Başarılı bir çalıştırmada terminal çıktısının sonunda aşağıdaki gibi bir özet görülmelidir:
+
+```text
+Test özeti: 10/10 senaryo geçti, 0 senaryo kaldı.
+```

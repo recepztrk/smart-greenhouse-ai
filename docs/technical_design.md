@@ -70,11 +70,13 @@ smart-greenhouse-ai/
 │   ├── simulation/
 │   │   ├── greenhouse_state.py
 │   │   ├── greenhouse_simulator.py
+│   │   ├── scenario_profiles.py
 │   │   └── virtual_sensors.py
 │   │
 │   ├── decision/
 │   │   ├── actions.py
-│   │   └── fuzzy_engine.py
+│   │   ├── fuzzy_engine.py
+│   │   └── rule_base.py
 │   │
 │   ├── explanation/
 │   │   └── explanation_engine.py
@@ -431,6 +433,7 @@ Dashboard, sistemin görsel arayüzünü sağlar.
 Dashboard üzerinden kullanıcı:
 
 - Başlangıç sera değerlerini ayarlayabilir.
+- Hazır sera senaryolarını seçebilir.
 - Simülasyonu tek adım çalıştırabilir.
 - Simülasyonu çoklu adım çalıştırabilir.
 - Anlık sera durumunu görebilir.
@@ -520,13 +523,20 @@ Test scriptini çalıştırmak için:
 python scripts/run_test_scenarios.py
 ```
 
-Import hatası alınırsa:
+Test scripti, her senaryo için üretilen aksiyonları sayısal kabul kriterlerine göre otomatik doğrular.
 
-```bash
-PYTHONPATH=. python scripts/run_test_scenarios.py
+Örnek kabul kriterleri:
+
+- Kuru toprak ve yeterli su tankında sulama seviyesi yüksek olmalıdır.
+- Su tankı kritik düşükken alarm seviyesi yüksek olmalıdır.
+- Yüksek sıcaklıkta fan seviyesi yüksek olmalıdır.
+- Düşük ışıkta gölgeleme kapalı kalmalıdır.
+
+Başarılı çalıştırmada terminal çıktısının sonunda aşağıdaki özet beklenir:
+
+```text
+Test özeti: 10/10 senaryo geçti, 0 senaryo kaldı.
 ```
-
-Bu yapı, sistemin beklenen davranışlara göre manuel olarak değerlendirilmesini sağlar.
 
 ---
 
@@ -561,7 +571,6 @@ Mevcut sınırlılıklar:
 - Simülasyon modeli gerçek sera fiziğini birebir temsil etmez.
 - Bitki türüne özel optimum değerler henüz tanımlanmamıştır.
 - Fuzzy kurallar ilk prototip seviyesindedir.
-- Otomatik doğrulama testleri henüz eklenmemiştir.
 - Planning/search modülü henüz uygulanmamıştır.
 
 Bu sınırlılıklar projenin zayıflığı değil, dönem kapsamının kontrollü tutulması için yapılan bilinçli tercihlerdir.
@@ -579,6 +588,8 @@ Projenin mevcut güçlü yönleri:
 - Terminal ve dashboard üzerinden çalışabilir prototip
 - Gelecekte gerçek donanıma genişletilebilir yapı
 - Türkçe dokümantasyon
+- Sayısal kabul kriterleriyle otomatik test senaryoları
+- Dashboard üzerinde hazır senaryo seçimi
 - Test senaryoları ile davranış kontrolü
 
 Bu yönleriyle proje yalnızca basit bir otomasyon demosu değil, karar destek sistemi mantığını gösteren akademik bir prototiptir.
@@ -591,10 +602,8 @@ Bu yönleriyle proje yalnızca basit bir otomasyon demosu değil, karar destek s
 
 ### Kısa Vadeli Geliştirmeler
 
-- Dashboard üzerinde hazır senaryo seçimi
 - Simülasyon loglarının dashboard’da CSV olarak indirilmesi
 - Fuzzy üyelik derecelerinin grafiksel gösterimi
-- Daha detaylı test çıktıları
 - Kural tabanının iyileştirilmesi
 - Basit bir planning/search modülü
 

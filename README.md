@@ -34,8 +34,11 @@ Bu değişkenlere göre aşağıdaki kontrol kararları üretilir:
 - Bulanık mantık tabanlı karar motoru
 - Uzman sistem mantığıyla kural tabanlı karar üretimi
 - Karar açıklama modülü
+- Sayısal kabul kriterleri olan test senaryoları
 - Terminal üzerinden çalışan uçtan uca demo
-- Gelecekte dashboard ve fiziksel sistem entegrasyonuna uygun modüler yapı
+- Streamlit tabanlı dashboard
+- Dashboard üzerinde hazır senaryo seçimi
+- Gelecekte fiziksel sistem entegrasyonuna uygun modüler yapı
 
 ---
 
@@ -63,21 +66,64 @@ DecisionExplanation
 
 ---
 
+## Kurulum
+
+Projeyi yerel ortamda çalıştırmak için:
+
+```bash
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+Windows PowerShell için sanal ortam etkinleştirme komutu:
+
+```powershell
+.\venv\Scripts\Activate.ps1
+```
+
+---
+
+## Terminal Demosunu Çalıştırma
+
+Varsayılan demo:
+
+```bash
+python app.py
+```
+
+Belirli adım sayısıyla çalıştırmak için:
+
+```bash
+python app.py --steps 5
+```
+
+Sensör gürültüsünü kapatarak çalıştırmak için:
+
+```bash
+python app.py --steps 5 --no-noise
+```
+
+---
+
 ## Test Senaryolarını Çalıştırma
 
 Önceden tanımlanmış fuzzy karar motoru test senaryolarını çalıştırmak için:
 
 ```bash
-python scripts/run_test_scenarios.py 
+python scripts/run_test_scenarios.py
 ```
+
+Bu script, her senaryoda üretilen sulama, havalandırma, gölgeleme ve alarm değerlerini beklenen sayısal kriterlere göre kontrol eder. Tüm senaryolar başarıyla geçerse terminalde test özeti görüntülenir.
 
 ---
 
 ## Dashboard'u Çalıştırma
 
-Dashboard üzerinde hazır test senaryoları da seçilebilir. Bu senaryolar sayesinde sistemin normal koşullar, kuru toprak, düşük su tankı, yüksek sıcaklık ve kritik bitki stresi gibi durumlarda nasıl karar verdiği hızlıca gözlemlenebilir.
-
 Streamlit tabanlı görsel dashboard'u çalıştırmak için:
 
 ```bash
 streamlit run dashboard.py
+```
+
+Dashboard üzerinde hazır test senaryoları seçilebilir. Bu senaryolar sayesinde sistemin normal koşullar, kuru toprak, düşük su tankı, yüksek sıcaklık ve kritik bitki stresi gibi durumlarda nasıl karar verdiği hızlıca gözlemlenebilir.
