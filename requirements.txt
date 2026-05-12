@@ -1,4 +1,3 @@
-# Dashboard aşamasında streamlit, pandas ve plotly gibi paketler eklenecektir.
-
+# Dashboard için gerekli temel paketler.
 streamlit
 pandas
