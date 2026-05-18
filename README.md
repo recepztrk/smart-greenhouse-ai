@@ -4,8 +4,6 @@ Bu proje, **Yapay Zekâ ve Uzman Sistemler** dersi kapsamında geliştirilen yaz
 
 Projenin amacı; sera ortamını yazılım içinde simüle eden, sanal sensörlerden çevresel veriler alan, bu verileri bulanık mantık tabanlı uzman sistem yaklaşımıyla değerlendiren ve uygun kontrol kararları üreten açıklanabilir bir karar destek sistemi geliştirmektir.
 
-Bu dönem kapsamında fiziksel donanım, gerçek sensör entegrasyonu veya gömülü sistem geliştirme hedeflenmemektedir. Ana hedef; çalışan, test edilebilir, açıklanabilir ve geliştirilebilir bir yazılım prototipi ortaya koymaktır.
-
 ---
 
 ## Proje Kapsamı
@@ -30,21 +28,18 @@ Bu değişkenlere göre aşağıdaki kontrol kararları üretilir:
 ## Temel Özellikler
 
 - Yazılım tabanlı sera ortamı simülasyonu
-- Sanal sensör okuma katmanı
-- Bulanık mantık tabanlı karar motoru
+- Sanal sensör okuma katmanı (ayarlanabilir gürültü şiddeti)
+- Bulanık mantık tabanlı karar motoru (Sugeno tipi)
 - Uzman sistem mantığıyla kural tabanlı karar üretimi
 - Karar açıklama modülü
 - Sayısal kabul kriterleri olan test senaryoları
 - Terminal üzerinden çalışan uçtan uca demo
-- Streamlit tabanlı dashboard
-- Dashboard üzerinde hazır senaryo seçimi
+- Streamlit tabanlı gelişmiş görsel dashboard (v2)
 - Gelecekte fiziksel sistem entegrasyonuna uygun modüler yapı
 
 ---
 
 ## Proje Mimarisi
-
-Genel veri akışı aşağıdaki gibidir:
 
 ```text
 GreenhouseState
@@ -68,62 +63,70 @@ DecisionExplanation
 
 ## Kurulum
 
-Projeyi yerel ortamda çalıştırmak için:
-
 ```bash
 python -m venv venv
-source venv/bin/activate
+source venv/bin/activate        # macOS / Linux
+# .\venv\Scripts\Activate.ps1  # Windows PowerShell
 pip install -r requirements.txt
-```
-
-Windows PowerShell için sanal ortam etkinleştirme komutu:
-
-```powershell
-.\venv\Scripts\Activate.ps1
 ```
 
 ---
 
 ## Terminal Demosunu Çalıştırma
 
-Varsayılan demo:
-
 ```bash
-python app.py
-```
-
-Belirli adım sayısıyla çalıştırmak için:
-
-```bash
-python app.py --steps 5
-```
-
-Sensör gürültüsünü kapatarak çalıştırmak için:
-
-```bash
-python app.py --steps 5 --no-noise
+python app.py                        # varsayılan demo
+python app.py --steps 5              # belirli adım sayısı
+python app.py --steps 5 --no-noise  # gürültüsüz çalıştırma
 ```
 
 ---
 
 ## Test Senaryolarını Çalıştırma
 
-Önceden tanımlanmış fuzzy karar motoru test senaryolarını çalıştırmak için:
-
 ```bash
 python scripts/run_test_scenarios.py
 ```
 
-Bu script, her senaryoda üretilen sulama, havalandırma, gölgeleme ve alarm değerlerini beklenen sayısal kriterlere göre kontrol eder. Tüm senaryolar başarıyla geçerse terminalde test özeti görüntülenir.
+Her senaryoda üretilen sulama, havalandırma, gölgeleme ve alarm değerleri beklenen sayısal kriterlere göre kontrol edilir. Tüm senaryolar başarıyla geçerse terminalde test özeti görüntülenir.
 
 ---
 
 ## Dashboard'u Çalıştırma
 
-Streamlit tabanlı görsel dashboard'u çalıştırmak için:
-
 ```bash
 streamlit run dashboard.py
 ```
 
-Dashboard üzerinde hazır test senaryoları seçilebilir. Bu senaryolar sayesinde sistemin normal koşullar, kuru toprak, düşük su tankı, yüksek sıcaklık ve kritik bitki stresi gibi durumlarda nasıl karar verdiği hızlıca gözlemlenebilir.
+---
+
+## Dashboard v2 — Özellikler
+
+| Bölüm | Açıklama |
+|---|---|
+| 🌿 **Sera Sağlık Skoru** | Tüm sensörleri birleştiren 0–100 anlık skor (KPI kartı) |
+| 📡 **Sensör Gauge'ları** | 5 sensör için renk kodlu yarım daire göstergeler |
+| 🕸️ **Radar Chart** | 5 değişkeni tek pentagon grafikte görselleştirme |
+| 🎛️ **Kontrol Aksiyonları** | Sulama / fan / gölge / alarm gauge'ları |
+| 🔬 **Fuzzy Üyelik Bar'ları** | Her değişken için dilsel küme aktivasyon dereceleri |
+| 📐 **Fuzzy Üyelik Eğrileri** | Trapezoid/üçgen şekiller + sensörün anlık konumu (dikey çizgi) |
+| 📊 **Kural Aktivasyon Grafiği** | Tetiklenen fuzzy kuralları yatay bar chart |
+| 🚨 **Alarm Zaman Çizelgesi** | Hangi adımda alarm oluştuğunu renkli bar grafik + eşik çizgileri |
+| ⏮️ **Adım Adım Geri Oynatma** | Slider + butonlarla her adımı ayrı incele, delta tablosu ile değişimleri gör |
+| 📈 **Simülasyon Geçmişi** | Etkileşimli Plotly line chart (sensörler + aksiyonlar) |
+| 📥 **CSV Dışa Aktarma** | Tüm simülasyon geçmişi indirilebilir |
+| 🤖 **Otomatik Simülasyon** | Toggle + hız slider (0.5–5 sn) ile kendi kendine çalışır |
+| 🌿 **Bitki Profili** | Domates / Biber / Salatalık / Genel — seçilebilir ideal aralıklar |
+| 📶 **Gürültü Şiddeti** | Sensör gürültüsünü 0–5 arası slider ile ayarla |
+| 🚨 **Alarm Banner** | Kritik alarm → kırmızı animasyon, uyarı → sarı banner |
+
+---
+
+## Sunum İçin Önerilen Demo Akışı
+
+1. **"Kuru Toprak" senaryosunu yükle** → sulama kararının fuzzy motor tarafından nasıl devreye girdiğini göster
+2. **"Kritik Bitki Stresi" senaryosunu yükle** → alarm banner'ının kırmızı yanmasını göster
+3. **Fuzzy üyelik eğrilerini göster** → "sensörün hangi kümeye ne kadar üye olduğunu anlık görüyoruz" de
+4. **Adım adım playback** → "her kararı geriye dönük inceleyebiliyoruz, delta tablosunda ne değiştiği görünüyor" de
+5. **Radar chart** → "5 boyutlu sera durumu tek bakışta" de
+6. **Otomatik simülasyon modunu aç** → sistemin kendi kendine çalışmasını canlı göster
